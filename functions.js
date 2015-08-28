@@ -4,6 +4,17 @@
 
 })(this, document, jQuery);
 
+function toggleCss(file, index) {
+    var oldFile = document.getElementsByTagName("link").item(index);
+    var newFile = document.createElement("link");
+    newFile.setAttribute("rel", "stylesheet");
+    newFile.setAttribute("type", "text/css");
+    newFile.setAttribute("href", file);
+
+    document.getElementsByTagName("head").item(0).replaceChild(newFile, oldFile);
+}
+
+
 // plain AJAX
 
 postDataWithAjax: function (url, params) {
@@ -171,16 +182,14 @@ function toggleClass(element, className) {
 }
 
 // ready()
-if (document.readyState != 'loading') {
-    function(){}
+if (document.readyState === 'complete') {
+    setTimeout(function(){});
 } else if (document.addEventListener) {
     document.addEventListener("DOMContentLoaded", function(){}, false);
+    document.addEventListener("load", function(){}, false);
 } else {
-    document.attachEvent('onreadystatechange', function() {
-        if (document.readyState != 'loading') {
-            function(){}
-        }
-    });
+    document.attachEvent('onreadystatechange', function(){});
+    window.attachEvent("onload", function(){});
 }
 
 //Get a random item from an array
@@ -188,12 +197,37 @@ var items = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 'foo', 'bar', 'b
 var  randomItem = items[Math.floor(Math.random() * items.length)];
 
 
+// rand number
+function getRandomNumber(min, max){
+    return Math.floor(Math.random() * (max - min)) + min;
+}
+
+getRandomNumber(15, 20);
+
+
+// clear html
 function escapeHTML(text) {
     var replacements= {"<": "&lt;", ">": "&gt;","&": "&amp;", """: "&quot;"};
     return text.replace(/[<>&"]/g, function(character) {
         return replacements[character];
     });
 }
+
+//Returning a new object with selected properties
+Object.prototype.pick = function(arr) {
+    var obj = {};
+    arr.forEach(function(key){
+        obj[key] = this[key];
+    });
+
+    return obj;
+};
+
+var objA = {"name": "colin", "car": "suzuki", "age": 17};
+
+var objB = objA.pick(['car', 'age']);
+// {"car": "suzuki", "age": 17}
+
 
 function getObjectIndexFromId(obj, id) {
     if (typeof obj == "object") {
@@ -248,3 +282,14 @@ var quicksort = function(arr) {
     };
     return (quicksort(less)).concat([swapValue], quicksort(more));
 };
+
+// The codes below are from Web Tools Weekly
+
+// When an event is triggered on an element, two properties help to identify the element: the target property and the currentTarget property. Assuming we have a .parent element with a .child element inside it, look at the following code:
+
+var parent = document.querySelector('.parent');
+
+parent.addEventListener('click',function(e) {
+  console.log(e.target.className);
+  console.log(e.currentTarget.className);
+}, false);
