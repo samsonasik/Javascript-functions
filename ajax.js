@@ -23,30 +23,22 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- * @category
- * @package
  * @author     Stanimir Dimitrov <stanimirdim92@gmail.com>
- * @copyright  2015 Stanimir Dimitrov.
+ * @copyright  2015 (c) Stanimir Dimitrov.
  * @license    http://www.opensource.org/licenses/mit-license.php  MIT License
- * @version    0.0.3
  * @link       TBA
  */
 
-/**
- * The use of 'use strict' might crash some libs and ASP.NET
- * because they tend to use arguments.caller.callee
- */
-'use strict';
 
-(function (root, factory) {
-    if (typeof define === 'function' && define.amd) {
-        define(factory);
-    } else if (typeof exports === 'object') {
-        module.exports = factory;
-    } else {
-        root.ajaxify = factory(root);
-    }
-}(this, function (root) {
+;(function (window, document, undefined) {
+
+    /**
+     * The use of 'use strict' might crash some libs and ASP.NET
+     * because they tend to use arguments.caller.callee
+     */
+    'use strict';
+
+    var exports = {};
 
     /**
      * s is not a global var
@@ -63,19 +55,35 @@
                 get: "GET",
                 put: "PUT"
             },
-            contentType: "application/x-www-form-urlencoded; charset=UTF-8",
+            responseTypes: {
+                text: "text",
+                arraybuffer: "arraybuffer",
+                blob: "blob",
+                doc: "document",
+                json: "json",
+                jsonp: "jsonp"
+            },
             mimeTypes: {
                 "*": "*/"+"*", // applying */* directly will be counted as comment
                 text: "text/plain",
                 html: "text/html",
-                json: "application/json, text/javascript"
-                xml: "application/xml, text/xml",
+                json: "application/json, text/javascript",
+                xml: "application/xml, text/xml"
             },
+            responseFields: {
+                xml: "responseXML",
+                text: "responseText",
+                json: "responseJSON"
+            },
+            contentType: "application/x-www-form-urlencoded; charset=UTF-8",
             async: true,
+            cache: null,
+            ajaxMethod: "GET",
             timeout: 0, // XHR2
             responseState: 0,
             url: null,
             data: null,
+            processData: true,
             dataType: null,
             username: null,
             password: null
@@ -84,13 +92,24 @@
         /**
          * @param {Object} settings
          */
-        init: function (settings) {
-            if (typeof this.settings === 'object') {
-                s = this.settings;
+        init: function (url, settings) {
+            if (typeof url === "object") {
+                s = url;
+                url = undefined;
+            } else if (typeof settings === 'object') {
+                s = settings;
             } else {
                 s = ajaxify.settings;
             }
-            console.log(s)
+            console.log(ajaxify.extend(s, ajaxify.settings));
+        },
+
+        extend: function (obj, src) {
+            for (var key in src) {
+                console.log(key)
+                // if (src.hasOwnProperty(key)) obj[key] = src[key];
+            }
+            return obj;
         },
 
         /**
@@ -129,7 +148,13 @@
 
         getCustomRequestHeader: function (headerName) {
 
-        }
+        },
+
+        showAjaxErrors: function (xmlHttpObject) {
+            console.log(xmlHttpObject.statusText);
+            console.log(xmlHttpObject.status);
+            console.log(xmlHttpObject.responseText)
+        },
 
         /**
          * @param {string} url where the POST will be send
@@ -142,36 +167,51 @@
              */
             var xhr = new(root.XMLHttpRequest || root.ActiveXObject)('MSXML2.XMLHTTP.3.0');
 
-            xhr.open("POST", url, true);
+            if (s.username) {
+                xhr.open(s.ajaxMethod, s.url, s.async, s.username, s.password);
+            } else {
+                xhr.open(s.ajaxMethod, s.url, s.async);
+            }
 
             xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
             xhr.setRequestHeader("Accept", "application/json");
             xhr.timeout = 30000;
+            xhr.responseType = "json";
             xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) {
-                    if (xhr.status >= 200 && xhr.status < 400) {
-                        ajaxify.parseJSON(xhr);
-                        ajaxify.init();
+                try {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status >= 200 && xhr.status < 400) {
+                            ajaxify.parseJSON(xhr);
+                            ajaxify.init();
+                        } else {
+                            ajaxify.showAjaxErrors(xhr);
+                        }
                     } else {
-                        console.log(xhr.statusText);
-                        console.log(xhr.status);
-                        console.log(xhr.responseText);
+                        ajaxify.showAjaxErrors(xhr);
                     }
+                } catch(e) {
+                    console.log('Caught Exception: ' + e.description);
                 }
-            }
+            };
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    document.value = (e.loaded / e.total) * 100;
+                    document.textContent = document.value; // Fallback for unsupported browsers.
+                }
+            };
             xhr.send(params);
             xhr = null;
         },
     };
 
-    if (document.readyState === 'complete') {
-        setTimeout(ajaxify.init);
-    } else if (document.addEventListener) {
-        ajaxify.settings.headers;
-        document.addEventListener("DOMContentLoaded", ajaxify.init, false);
-        document.addEventListener("load", ajaxify.init, false);
+    if (typeof module === "object" && module && typeof module.exports === "object") {
+        module.exports = ajaxify;
     } else {
-        document.attachEvent('onreadystatechange', ajaxify.init);
-        root.attachEvent("onload", ajaxify.init);
+        window.ajaxify = ajaxify;
+        if (typeof define === "function" && define.amd) {
+            define( "ajaxify", [], function () {
+                return ajaxify;
+            });
+        }
     }
-}));
+})(window, document);

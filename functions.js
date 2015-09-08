@@ -124,7 +124,6 @@ $(".ajax-search").on("keyup", function () {
                     for (var property in $val) {
                         if ($val.hasOwnProperty(property)) {
                             if ($val[property] === null || $val[property] === undefined || $val[property] === '') {
-                                // $ul.append("<li class='table-cell'>&nbsp;</li>");
                                 continue;
                             } else {
                                 $ul.append("<li data-id ='"+$val["_id"]+"' class='table-cell'>"+$val[property]+"</li>");
@@ -283,6 +282,18 @@ var quicksort = function(arr) {
     return (quicksort(less)).concat([swapValue], quicksort(more));
 };
 
+function bytesToSize(bytes) {
+    var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        if (bytes === 0) {
+            return 'n/a';
+        }
+    var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)),10);
+        if (i === 0) {
+            return bytes + ' ' + sizes[i];
+        }
+    return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
+}
+
 // The codes below are from Web Tools Weekly
 
 // When an event is triggered on an element, two properties help to identify the element: the target property and the currentTarget property. Assuming we have a .parent element with a .child element inside it, look at the following code:
@@ -293,3 +304,17 @@ parent.addEventListener('click',function(e) {
   console.log(e.target.className);
   console.log(e.currentTarget.className);
 }, false);
+
+var listArray = Array.prototype.slice.call(list);
+console.log(Array.isArray(listArray)); // true
+
+function toArray(obj) {
+  var array = ;
+  for (var i = obj.length >>> 0; i--;) {
+    array[i] = obj[i];
+  }
+  return array;
+}
+
+var listArray2 = toArray(list);
+console.log(Array.isArray(listArray2)); // true
