@@ -123,9 +123,7 @@ $(".ajax-search").on("keyup", function () {
                     var $val = $.parseJSON(value);
                     for (var property in $val) {
                         if ($val.hasOwnProperty(property)) {
-                            if ($val[property] === null || $val[property] === undefined || $val[property] === '') {
-                                continue;
-                            } else {
+                            if ($val[property]) {
                                 $ul.append("<li data-id ='"+$val["_id"]+"' class='table-cell'>"+$val[property]+"</li>");
                             }
                         }
@@ -304,6 +302,8 @@ parent.addEventListener('click',function(e) {
   console.log(e.target.className);
   console.log(e.currentTarget.className);
 }, false);
+
+
 
 var listArray = Array.prototype.slice.call(list);
 console.log(Array.isArray(listArray)); // true
