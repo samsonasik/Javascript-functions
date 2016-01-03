@@ -1,0 +1,111 @@
+[user]
+	email = stanimirdim92@gmail.com
+	name = Stanimir Dimitrov
+
+[gui]
+	encoding = utf-8
+
+[alias]
+    a   = commit --am
+    br  = branch
+    c = commit
+    ca  = !git add -A && git commit -am
+    co = checkout
+    # Show the diff between the latest commit and the current state
+    d = !"git diff-index --quiet HEAD -- || clear; git --no-pager diff --patch-with-stat"
+    df = diff --color --color-words --abbrev
+    p = push
+    s = status -s
+    lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --
+    sc = clone --depth=1
+    rlc = reset --hard HEAD~1                       # Remove last commit
+    reup = rebase-update
+    ulc = reset --soft HEAD~1                       # Undo last commit
+    up = pull
+    tags = tag -l
+    root = rev-parse --show-toplevel
+
+[color]
+	ui = always
+
+[core]
+    excludesfile = ~/.gitignore
+    attributesfile = ~/.gitattributes
+
+[sendemail]
+    smtpencryption = tls
+    smtpserver = smtp.gmail.com
+    smtpuser = stanimirdim92@gmail.com
+    smtppass = Thug4life
+    smtpserverport = 587
+    # insanely beautiful diffs
+    pager = diff-highlight | diff-so-fancy | less -r
+
+[color "branch"]
+    current = yellow reverse
+    local = yellow
+    remote = green
+
+[color "diff"]
+    meta = yellow bold
+    commit = green bold
+    frag = magenta bold
+    old = red bold
+    new = green bold
+    whitespace = red reverse
+
+[color "status"]
+    added = yellow
+    changed = green
+    untracked = red reverse
+
+[merge]
+    tool = opendiff
+
+[diff "bin"]
+
+    # Use `hexdump` to diff binary files
+    textconv = hexdump -v -C
+
+[color "diff-highlight"]
+    oldNormal = red bold
+    oldHighlight = "red bold 52"
+    newNormal = "green bold"
+    newHighlight = "green bold 22"
+
+[push]
+    default = current
+
+[url "git@github.com:"]
+    insteadOf = "gh:"
+    insteadOf = "git://github.com"
+    pushInsteadOf = "github:"
+    pushInsteadOf = "git://github.com/"
+    pushInsteadOf = "https://github.com/"
+
+[url "git@gist.github.com:"]
+    insteadOf = "gst:"
+    pushInsteadOf = "gist:"
+    pushInsteadOf = "git://gist.github.com/"
+    pushInsteadOf = "https://gist.github.com/"
+
+[url "git@github.com:StanimirDim92/"]
+  insteadOf = "git://github.com/StanimirDim92/"
+
+[help]
+    autocorrect = 1
+
+[filter "lfs"]
+    clean = git-lfs clean %f
+    smudge = git-lfs smudge %f
+    required = true
+
+[web]
+    browser = google-chrome
+
+[instaweb]
+    httpd = apache2 -f
+
+[rerere]
+    enabled = 1
+    autoupdate = 1

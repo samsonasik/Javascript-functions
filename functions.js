@@ -291,6 +291,16 @@ function bytesToSize(bytes) {
         }
     return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
 }
+// from fb
+function m() {
+    var res = {};
+    for (var i = 0; i < arguments.length; i++) {
+        if (arguments[i]) {
+            Object.assign(res, arguments[i]);
+        }
+    }
+    return res;
+}
 
 // The codes below are from Web Tools Weekly
 
@@ -304,7 +314,6 @@ parent.addEventListener('click',function(e) {
 }, false);
 
 
-
 var listArray = Array.prototype.slice.call(list);
 console.log(Array.isArray(listArray)); // true
 
@@ -315,6 +324,7 @@ function toArray(obj) {
   }
   return array;
 }
+
 
 var listArray2 = toArray(list);
 console.log(Array.isArray(listArray2)); // true

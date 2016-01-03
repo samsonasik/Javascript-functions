@@ -11,6 +11,23 @@ $year = 31536000;
 $protocols = array( 'http', 'https', 'ftp', 'ftps', 'mailto', 'news', 'irc', 'gopher', 'nntp', 'feed', 'telnet', 'mms', 'rtsp', 'svn', 'tel', 'fax', 'xmpp' );
 
 
+/**
+ * Get a protected/private method reflection for testing.
+ *
+ * @param object $obj The instantiated instance of your class
+ * @param string $name The name of your protected/private method
+ * @param array $args Arguments for the protected/private method
+ *
+ * @return ReflectionClass The method you asked for
+ */
+private static function getProtectedOrPrivateMethod($obj, $name, array $args) {
+    $class = new ReflectionClass($obj);
+    $method = $class->getMethod($name);
+    $method->setAccessible(true);
+
+    return $method->invokeArgs($obj, $args);
+}
+
 function prime($num) {
     $number = 2;
     $range = range(2, $num);
@@ -227,5 +244,7 @@ function selectSort(array $arr) {
         return $output;
     }
 
-
+function calculate_score($votes, $item_hour_age, $gravity=1.8) {
+    return ($votes - 1) / pow(($item_hour_age+2), $gravity);
+  }
 ?>
