@@ -73,6 +73,18 @@ var element = document.createElement('p');
 element.appendChild(document.createTextNode('Text'));
 document.querySelector('.item').appendChild(element);
 
+function addNote() {
+    var newFields = document.getElementById('noteFields');
+    var field = '<tr><td width="110" height="20" align="left"><strong>New note: </strong></td><td height="20"><input  style="width: 100%" type="text" size="30" name="notes[]"></td><td  style="padding: 0 0 0 10px;"  width="90" height="20"><button  style="width: 100%" type="button" name="remove" onclick="javascript: removeNoteField(this)">Remove</button></td></tr>';
+
+    newFields.insertAdjacentHTML('beforeend', field);
+}
+
+function removeNoteField(r) {
+    var i = r.parentNode.parentNode.rowIndex;
+    document.getElementById("noteFields").deleteRow(i);
+}
+
 /**
  * Create DOM nodes with text, class and appends them to elementAppend
  */
