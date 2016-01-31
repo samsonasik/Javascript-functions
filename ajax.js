@@ -92,13 +92,13 @@
         },
 
         /**
-         * @param {Object} response The XMLHttpRequest response
+         * @param {Object} data The XMLHttpRequest responseText
          */
-        parseJSON: function (response) {
+        parseJSON: function (data) {
             try {
-                return JSON.parse(response.responseText);
+                return JSON.parse(data);
             } catch (e) {
-                return [e, response.responseText];
+                return [e, data];
             }
         },
 
@@ -134,8 +134,12 @@
          * @param {Object} request The XMLHttpRequest request
          */
         setHeaders: function (request) {
-            request.setRequestHeader("Content-type", s.contentType + "");
-            request.setRequestHeader("Accept", s.accepts[s.dataType]);
+            if (s.contentType !== false) {
+                request.setRequestHeader("Content-type", s.contentType);
+            }
+            if (s.accepts[s.dataType] !== false) {
+                request.setRequestHeader("Accept", s.accepts[s.dataType]);
+            }
             request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
             // Check for headers option
@@ -144,23 +148,53 @@
             }
         },
 
+        /**
+         * @param {Object} xhr The XMLHttpRequest
+         */
         showAjaxErrors: function (xhr) {
-            console.log(xhr)
             console.error("Status text: " + xhr.statusText);
             console.error("XHR error: " + xhr.error);
             console.error("Status: " + xhr.status);
             console.error("Response text: " + xhr.responseText);
         },
 
+       /**
+         * @param {Object} settings
+         */
+        getSettings: function(settings) {
+            if (typeof settings === 'object') {
+                return ajaxify.extend(settings, ajaxify.settings);
+            } else {
+                return ajaxify.settings;
+            }
+        },
+
+        /**
+         * @param {Object} data
+         */
+        convertObjectToText: function(data) {
+            var pairs = [];
+
+            for (var prop in data) {
+                if (data.hasOwnProperty(prop)) {
+                    var k = encodeURIComponent(prop),
+                        v = encodeURIComponent(data[prop]);
+                    pairs.push( k + "=" + v);
+                }
+            }
+
+            return pairs.join("&");
+        }
+
         /**
          * @param {Object} settings
          * @param {Callback} callback
          */
         ajax: function (settings, callback) {
-            if (typeof settings === 'object') {
-                s = ajaxify.extend(settings, ajaxify.settings);
-            } else {
-                s = ajaxify.settings;
+            s = ajaxify.getSettings(settings);
+
+            if (typeof s.data === 'object') {
+                s.data = convertObjectToText(s.data);
             }
 
             /**
@@ -169,13 +203,13 @@
             var request = new (window.XMLHttpRequest || ActiveXObject)('MSXML2.XMLHTTP.3.0');
             s.method = s.method.toUpperCase() || 'GET';
 
-            /**
-             * Open socket
-             */
             if (s.method === 'GET') {
                 s.url = (s.url += (rquery.test(s.url) ? "&" : "?") + s.data);
             }
 
+            /**
+             * Open socket
+             */
             request.open(s.method, s.url, s.async, s.username, s.password);
 
             ajaxify.setHeaders(request);
@@ -189,9 +223,9 @@
 
             request.onreadystatechange = function () {
                 if (this.readyState === 4) {
-                    if (this.status >= 300 && this.status < 300) {
+                    if (this.status >= 200 && this.status < 300) {
                         if (typeof callback === 'function') {
-                            callback(this, this.getAllResponseHeaders());
+                            callback(this.responseText, this.getAllResponseHeaders(), this);
 
                             // Clear timeout if it exists
                             if (timeoutTimer) {

@@ -12,7 +12,7 @@
 ajaxify.ajax({
     url: 'test.php',
     method: "POST",
-    data: 'da=da',
+    data: {da: "da=da&asd=dsa"},
     dataType: "json",
     headers: {"asd": "dsa", "aaaaaaaaaaaa":'bbbbbbbbbb'}
 }, function (results, headers){
