@@ -9,10 +9,17 @@
 
 <script type="text/javascript">
 
-console.log(ajaxify.init({
-    ajaxMethod: "post",
-    cache: true,
-}));
+ajaxify.ajax({
+    url: 'test.php',
+    method: "POST",
+    data: {da: "da=da&asd=dsa"},
+    dataType: "json",
+    headers: {"asd": "dsa", "aaaaaaaaaaaa":'bbbbbbbbbb'}
+}, function (results, headers){
+    res = ajaxify.parseJSON(results)
+    console.log(res)
+    console.log(headers)
+});
 
 </script>
 </body>

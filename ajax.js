@@ -24,9 +24,8 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  * @author     Stanimir Dimitrov <stanimirdim92@gmail.com>
- * @copyright  2015 (c) Stanimir Dimitrov.
+ * @copyright  2016 (c) Stanimir Dimitrov.
  * @license    http://www.opensource.org/licenses/mit-license.php  MIT License
- * @link       TBA
  */
 
 
@@ -39,168 +38,230 @@
     'use strict';
 
     var exports = {};
-
-    /**
-     * s is not a global var
-     */
-    var s,
-        ajaxify = {
+    // timeout handle
+    var timeoutTimer;
+    var s;
+    var rquery = ( /\?/ );
+    var ajaxify = {
 
         /**
          * Default settings
          */
         settings: {
-            methods: {
-                post: "POST",
-                get: "GET",
-                put: "PUT"
-            },
-            responseTypes: {
-                text: "text",
-                arraybuffer: "arraybuffer",
-                blob: "blob",
-                doc: "document",
-                json: "json",
-                jsonp: "jsonp"
-            },
-            mimeTypes: {
+            accepts: {
                 "*": "*/"+"*", // applying */* directly will be counted as comment
                 text: "text/plain",
                 html: "text/html",
+                xml: "application/xml, text/xml",
                 json: "application/json, text/javascript",
-                xml: "application/xml, text/xml"
-            },
-            responseFields: {
-                xml: "responseXML",
-                text: "responseText",
-                json: "responseJSON"
             },
             contentType: "application/x-www-form-urlencoded; charset=UTF-8",
             async: true,
-            cache: null,
-            ajaxMethod: "GET",
+            method: "GET",
             timeout: 0, // XHR2
-            responseState: 0,
-            url: null,
-            data: null,
-            processData: true,
-            dataType: null,
+            url: location.href,
             username: null,
-            password: null
-        },
-
-        /**
-         * @param {Object} settings
-         */
-        init: function (url, settings) {
-            if (typeof url === "object") {
-                s = url;
-                url = undefined;
-            } else if (typeof settings === 'object') {
-                s = settings;
-            } else {
-                s = ajaxify.settings;
-            }
-            console.log(ajaxify.extend(s, ajaxify.settings));
+            password: null,
+            dataType: "json",
+            data: null,
+            headers: {},
         },
 
         extend: function (obj, src) {
             for (var key in src) {
-                console.log(key)
-                // if (src.hasOwnProperty(key)) obj[key] = src[key];
+                if (obj.hasOwnProperty(key)) {
+                    src[key] = obj[key];
+                }
             }
-            return obj;
+
+            return src;
         },
 
         /**
          * http://caniuse.com/#feat=xhr2
-         * https://developer.mozilla.org/en-US/docs/Web/API/XMLHTTPRequest
+         * https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
          *
          * @return {Int} The XMLHttpRequest version
          */
         detectXMLHttpVersion: function () {
             if ('FormData' in window) {
                 return 2;
-            } else {
-                return 1;
             }
+
+            return 1;
         },
 
         /**
-         * @param {Object} response The XMLHTTPRequest response
+         * @param {Object} data The XMLHttpRequest responseText
          */
-        parseJSON: function (response) {
-            var result;
+        parseJSON: function (data) {
             try {
-              result = JSON.parse(response.responseText);
+                return JSON.parse(data);
             } catch (e) {
-              result = response.responseText;
+                return [e, data];
             }
-            return [result, response];
-        },
-
-        setCustomRequestHeader: function(headerName, headerValue) {
-            var headers = [];
-            headerName = headerName.toLowerCase();
-            headers[headerName] = headerValue;
-            // return this;
-        },
-
-        getCustomRequestHeader: function (headerName) {
-
-        },
-
-        showAjaxErrors: function (xmlHttpObject) {
-            console.log(xmlHttpObject.statusText);
-            console.log(xmlHttpObject.status);
-            console.log(xmlHttpObject.responseText)
         },
 
         /**
-         * @param {string} url where the POST will be send
-         * @callback setViewCallBack The callback that handles the response.
-         * @param {string} params holds the container name and the keysession
+         * Taken from jQuery.js
+         *
+         * @param {Object} response The XMLHttpRequest response
          */
-        xhr: function (url, setViewCallBack, params) {
+        parseXML: function(response) {
+            var xml, tmp;
+            if ( !response || typeof response !== "string" ) {
+                return null;
+            }
+            try {
+                if ( window.DOMParser ) { // Standard
+                    tmp = new window.DOMParser();
+                    xml = tmp.parseFromString( response, "text/xml" );
+                } else { // IE
+                    xml = new window.ActiveXObject( "Microsoft.XMLDOM" );
+                    xml.async = "false";
+                    xml.loadXML( response );
+                }
+            } catch ( e ) {
+                xml = undefined;
+            }
+            if ( !xml || !xml.documentElement || xml.getElementsByTagName( "parsererror" ).length ) {
+                jQuery.error( "Invalid XML: " + response );
+            }
+            return xml;
+        },
+
+        /**
+         * @param {Object} request The XMLHttpRequest request
+         */
+        setHeaders: function (request) {
+            if (s.contentType !== false) {
+                request.setRequestHeader("Content-type", s.contentType);
+            }
+            if (s.accepts[s.dataType] !== false) {
+                request.setRequestHeader("Accept", s.accepts[s.dataType]);
+            }
+            request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+            // Check for headers option
+            for (var i in s.headers) {
+                request.setRequestHeader(i, s.headers[i]);
+            }
+        },
+
+        /**
+         * @param {Object} xhr The XMLHttpRequest
+         */
+        showAjaxErrors: function (xhr) {
+            console.error("Status text: " + xhr.statusText);
+            console.error("XHR error: " + xhr.error);
+            console.error("Status: " + xhr.status);
+            console.error("Response text: " + xhr.responseText);
+        },
+
+       /**
+         * @param {Object} settings
+         */
+        getSettings: function(settings) {
+            if (typeof settings === 'object') {
+                return ajaxify.extend(settings, ajaxify.settings);
+            } else {
+                return ajaxify.settings;
+            }
+        },
+
+        /**
+         * @param {Object} data
+         */
+        convertObjectToText: function(data) {
+            var pairs = [];
+
+            for (var prop in data) {
+                if (data.hasOwnProperty(prop)) {
+                    var k = encodeURIComponent(prop),
+                        v = encodeURIComponent(data[prop]);
+                    pairs.push( k + "=" + v);
+                }
+            }
+
+            return pairs.join("&");
+        }
+
+        /**
+         * @param {Object} settings
+         * @param {Callback} callback
+         */
+        ajax: function (settings, callback) {
+            s = ajaxify.getSettings(settings);
+
+            if (typeof s.data === 'object') {
+                s.data = convertObjectToText(s.data);
+            }
+
             /**
              * IE 5.5+ and any other browser
              */
-            var xhr = new(root.XMLHttpRequest || root.ActiveXObject)('MSXML2.XMLHTTP.3.0');
+            var request = new (window.XMLHttpRequest || ActiveXObject)('MSXML2.XMLHTTP.3.0');
+            s.method = s.method.toUpperCase() || 'GET';
 
-            if (s.username) {
-                xhr.open(s.ajaxMethod, s.url, s.async, s.username, s.password);
-            } else {
-                xhr.open(s.ajaxMethod, s.url, s.async);
+            if (s.method === 'GET') {
+                s.url = (s.url += (rquery.test(s.url) ? "&" : "?") + s.data);
             }
 
-            xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
-            xhr.setRequestHeader("Accept", "application/json");
-            xhr.timeout = 30000;
-            xhr.responseType = "json";
-            xhr.onreadystatechange = function () {
-                try {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status >= 200 && xhr.status < 400) {
-                            ajaxify.parseJSON(xhr);
-                            ajaxify.init();
+            /**
+             * Open socket
+             */
+            request.open(s.method, s.url, s.async, s.username, s.password);
+
+            ajaxify.setHeaders(request);
+
+            if (ajaxify.detectXMLHttpVersion() === 2 && s.async && s.timeout > 0) {
+                request.timeout = s.timeout;
+                timeoutTimer = window.setTimeout(function() {
+                    request.abort("timeout");
+                }, s.timeout);
+            }
+
+            request.onreadystatechange = function () {
+                if (this.readyState === 4) {
+                    if (this.status >= 200 && this.status < 300) {
+                        if (typeof callback === 'function') {
+                            callback(this.responseText, this.getAllResponseHeaders(), this);
+
+                            // Clear timeout if it exists
+                            if (timeoutTimer) {
+                                window.clearTimeout(timeoutTimer);
+                            }
                         } else {
-                            ajaxify.showAjaxErrors(xhr);
+                            throw new Error('Second parameter must be a callback');
                         }
                     } else {
-                        ajaxify.showAjaxErrors(xhr);
+                        ajaxify.showAjaxErrors(this);
                     }
-                } catch(e) {
-                    console.log('Caught Exception: ' + e.description);
                 }
             };
-            xhr.upload.onprogress = function(e) {
-                if (e.lengthComputable) {
-                    document.value = (e.loaded / e.total) * 100;
-                    document.textContent = document.value; // Fallback for unsupported browsers.
-                }
+
+            request.onerror = function () {
+                ajaxify.showAjaxErrors(this);
             };
-            xhr.send(params);
-            xhr = null;
+
+            // request.upload.onprogress = function(e) {
+            //     if (e.lengthComputable) {
+            //         document.value = (e.loaded / e.total) * 100;
+            //         document.textContent = document.value; // Fallback for unsupported browsers.
+            //     }
+            // };
+
+            request.send(s.data || null);
+
+            return this;
+        },
+
+        abort: function (request) {
+            if (request) {
+                request.onreadystatechange = function () {}
+                request.abort();
+                request = null;
+            }
         },
     };
 
