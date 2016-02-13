@@ -12,14 +12,17 @@
 ajaxify.ajax({
     url: 'test.php',
     method: "POST",
-    data: {da: "da=da&asd=dsa"},
+    data: {da: "da=da&asd=dsa", user: "stanimir"},
     dataType: "json",
-    headers: {"asd": "dsa", "aaaaaaaaaaaa":'bbbbbbbbbb'}
-}, function (results, headers){
-    res = ajaxify.parseJSON(results)
-    console.log(res)
-    console.log(headers)
+    timeout: 30000000,
+    headers: {"my-Awes0mE-H3ad3R": "header4e"}
+}, function (result) {
+    ajaxify.each(ajaxify.parseJSON(result), function(i, data) {
+        console.log(i);
+        console.log(data);
+    });
 });
+
 
 </script>
 </body>

@@ -40,13 +40,14 @@
     var exports = {};
     // timeout handle
     var timeoutTimer;
-    var s;
     var rquery = ( /\?/ );
     var ajaxify = {
 
         /**
          * Default settings
          */
+        s: {},
+        request: null,
         settings: {
             accepts: {
                 "*": "*/"+"*", // applying */* directly will be counted as comment
@@ -62,9 +63,12 @@
             url: location.href,
             username: null,
             password: null,
+            withCredentials: false,
             dataType: "json",
             data: null,
             headers: {},
+            crossOrigin: false,
+            xdr: false,
         },
 
         extend: function (obj, src) {
@@ -130,32 +134,30 @@
             return xml;
         },
 
-        /**
-         * @param {Object} request The XMLHttpRequest request
-         */
-        setHeaders: function (request) {
-            if (s.contentType !== false) {
-                request.setRequestHeader("Content-type", s.contentType);
+        setHeaders: function () {
+            if (this.s.contentType !== false) {
+                this.request.setRequestHeader("Content-type", this.s.contentType);
             }
-            if (s.accepts[s.dataType] !== false) {
-                request.setRequestHeader("Accept", s.accepts[s.dataType]);
+            if (this.s.accepts[this.s.dataType] !== false) {
+                this.request.setRequestHeader("Accept", this.s.accepts[this.s.dataType]);
             }
-            request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            this.request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
             // Check for headers option
-            for (var i in s.headers) {
-                request.setRequestHeader(i, s.headers[i]);
+            for (var i in this.s.headers) {
+                this.request.setRequestHeader(i, this.s.headers[i]);
             }
         },
 
-        /**
-         * @param {Object} xhr The XMLHttpRequest
-         */
-        showAjaxErrors: function (xhr) {
-            console.error("Status text: " + xhr.statusText);
-            console.error("XHR error: " + xhr.error);
-            console.error("Status: " + xhr.status);
-            console.error("Response text: " + xhr.responseText);
+        showAjaxErrors: function (err) {
+            if (typeof err === 'function') {
+                err(this.request.error, this.request.statusText, this.request.status, this.request.responseText, this.request.getAllResponseHeaders());
+            } else {
+                console.error("Status text: " + this.request.statusText);
+                console.error("XHR error: " + this.request.error);
+                console.error("Status: " + this.request.status);
+                console.error("Response text: " + this.request.responseText);
+            }
         },
 
        /**
@@ -163,9 +165,9 @@
          */
         getSettings: function(settings) {
             if (typeof settings === 'object') {
-                return ajaxify.extend(settings, ajaxify.settings);
+                return this.extend(settings, this.settings);
             } else {
-                return ajaxify.settings;
+                return this.settings;
             }
         },
 
@@ -184,83 +186,142 @@
             }
 
             return pairs.join("&");
-        }
+        },
 
         /**
          * @param {Object} settings
-         * @param {Callback} callback
+         * @param {Callback} done
+         * @param {Callback} err
          */
-        ajax: function (settings, callback) {
-            s = ajaxify.getSettings(settings);
+        ajax: function (settings, done, err) {
+            if (typeof done !== 'function') {
+                throw new Error('Second parameter must be a callback');
+            }
 
-            if (typeof s.data === 'object') {
-                s.data = convertObjectToText(s.data);
+            this.s = this.getSettings(settings);
+
+            if (typeof this.s.data === 'object') {
+                this.s.data = this.convertObjectToText(this.s.data);
             }
 
             /**
              * IE 5.5+ and any other browser
              */
-            var request = new (window.XMLHttpRequest || ActiveXObject)('MSXML2.XMLHTTP.3.0');
-            s.method = s.method.toUpperCase() || 'GET';
+            this.request = new (window.XMLHttpRequest || ActiveXObject)('MSXML2.XMLHTTP.3.0');
+            this.s.method = this.s.method.toUpperCase() || 'GET';
+            if(this.crossOrigin) {
+                if(!('withCredentials' in this.request) && window.XDomainRequest) {
+                    this.request = new XDomainRequest();
+                    this.xdr = true;
+                    if(this.s.method !== 'GET' || this.s.method !== 'POST') {
+                        this.s.method = 'GET';
+                    }
+                }
+            }
 
-            if (s.method === 'GET') {
-                s.url = (s.url += (rquery.test(s.url) ? "&" : "?") + s.data);
+            /**
+             * Normalize URL
+             */
+            if (this.s.method === 'GET') {
+                this.s.url = (this.s.url += (rquery.test(this.s.url) ? "&" : "?") + this.s.data);
             }
 
             /**
              * Open socket
              */
-            request.open(s.method, s.url, s.async, s.username, s.password);
-
-            ajaxify.setHeaders(request);
-
-            if (ajaxify.detectXMLHttpVersion() === 2 && s.async && s.timeout > 0) {
-                request.timeout = s.timeout;
-                timeoutTimer = window.setTimeout(function() {
-                    request.abort("timeout");
-                }, s.timeout);
+            if (this.xdr) {
+                this.request.open(this.s.method, this.s.url);
+            } else {
+                if (this.detectXMLHttpVersion() === 2 && this.s.async === true) {
+                    this.request.withCredentials = this.s.withCredentials;
+                }
+                this.request.open(this.s.method, this.s.url, this.s.async, this.s.username, this.s.password);
             }
 
-            request.onreadystatechange = function () {
+            /**
+             * Set all headers
+             */
+            this.setHeaders();
+
+            /**
+             * See if we can set request timeout
+             */
+            if (this.detectXMLHttpVersion() === 2 && this.s.async === true && this.s.timeout > 0) {
+                this.request.timeout = this.s.timeout;
+                timeoutTimer = window.setTimeout(function() {
+                    this.request.abort("timeout");
+                }, this.s.timeout);
+            }
+
+            this.request.onload = function () {
                 if (this.readyState === 4) {
                     if (this.status >= 200 && this.status < 300) {
-                        if (typeof callback === 'function') {
-                            callback(this.responseText, this.getAllResponseHeaders(), this);
+                        done(this.responseText, this.getAllResponseHeaders(), this);
 
-                            // Clear timeout if it exists
-                            if (timeoutTimer) {
-                                window.clearTimeout(timeoutTimer);
-                            }
-                        } else {
-                            throw new Error('Second parameter must be a callback');
+                        // Clear timeout if it exists
+                        if (timeoutTimer) {
+                            window.clearTimeout(timeoutTimer);
                         }
                     } else {
-                        ajaxify.showAjaxErrors(this);
+                        ajaxify.showAjaxErrors(err);
                     }
                 }
             };
 
-            request.onerror = function () {
-                ajaxify.showAjaxErrors(this);
+            this.request.onerror = function () {
+                ajaxify.showAjaxErrors(err);
             };
 
-            // request.upload.onprogress = function(e) {
-            //     if (e.lengthComputable) {
-            //         document.value = (e.loaded / e.total) * 100;
-            //         document.textContent = document.value; // Fallback for unsupported browsers.
-            //     }
-            // };
+            this.request.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    document.value = (e.loaded / e.total) * 100;
+                    document.textContent = document.value; // Fallback for unsupported browsers.
+                }
+            };
 
-            request.send(s.data || null);
+            // Send request
+            if(this.xdr) {
+                // http://cypressnorth.com/programming/internet-explorer-aborting-ajax-requests-fixed/
+                this.request.onprogress = function(){};
+                this.request.ontimeout = function(){};
+                this.request.onerror = function(){};
+                // https://developer.mozilla.org/en-US/docs/Web/API/XDomainRequest
+                setTimeout(function() {
+                    this.request.send(this.s.data);
+                }, 0);
+            }
+            else {
+                this.request.send(this.s.data);
+            }
 
             return this;
         },
 
-        abort: function (request) {
-            if (request) {
-                request.onreadystatechange = function () {}
-                request.abort();
-                request = null;
+        /**
+         * @param {Object|Array} obj
+         * @param {Callback} callback
+         */
+        each: function (obj, callback) {
+            var i = 0;
+
+            if (Array.isArray(obj)) {
+                Array.prototype.forEach.call(obj, callback);
+            } else {
+                for (i in obj) {
+                    if (callback.call(obj[i], i, obj[i] ) === false) {
+                        break;
+                    }
+                }
+            }
+
+            return obj;
+        },
+
+        abort: function () {
+            if (this.request) {
+                this.request.onreadystatechange = function () {}
+                this.request.abort();
+                this.request = null;
             }
         },
     };
