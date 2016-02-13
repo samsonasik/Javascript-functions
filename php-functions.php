@@ -11,6 +11,103 @@ $year = 31536000;
 $protocols = array( 'http', 'https', 'ftp', 'ftps', 'mailto', 'news', 'irc', 'gopher', 'nntp', 'feed', 'telnet', 'mms', 'rtsp', 'svn', 'tel', 'fax', 'xmpp' );
 
 
+
+
+
+function searchForSaturday($dayName = null)
+{
+    global $db;
+    $nonWorkingDays = $db->queryAll("SELECT date FROM system_conf_non_working_dates");
+
+    $nonWorkingDay = array();
+    foreach ($nonWorkingDays as $key => $newDay) {
+        $nonWorkingDay[] = date('d/m/Y', $newDay['date']);
+    }
+
+    $isLeapYear = date('L');
+    $totalDays = 365;
+    $ii = 1;
+    if ($isLeapYear == 1) {
+        $totalDays = 366;
+    }
+
+    $currentYearDay = date('z', time()) + 1;
+
+    for ($i = $currentYearDay; $i <= $totalDays; $i++) {
+        $d = mktime(0, 0, 0, 1, $i, date("Y"));
+        $isThisTheDate = date("d/m/Y", $d);
+
+        if ($dayName == date('D', $d)) {
+            if (time() > strtotime('13:00:00')) {
+                do {
+                    $dateTime = DateTime::createFromFormat('d/m/Y', $isThisTheDate);
+                    $dateTime->modify("+{$ii} day");
+                    $dName = date('D', $dateTime->getTimestamp());
+                    $isThisTheDate = date('d/m/Y', $dateTime->getTimestamp());
+
+                } while (in_array($isThisTheDate, $nonWorkingDay) || $dName == 'Sun');
+            }
+            // if (in_array($isThisTheDate, $nonWorkingDay)) {
+            // }
+
+            return $isThisTheDate;
+        }
+    }
+}
+
+function searchForNextWorkingDay($dayName = 0)
+{
+    global $db;
+    $dayName = (int) $dayName;
+    $nonWorkingDays = $db->queryAll("SELECT date FROM system_conf_non_working_dates");
+    $nonWorkingDay = array();
+    if (count($nonWorkingDays) > 0) {
+        foreach ($nonWorkingDays as $key => $newDay) {
+            $nonWorkingDay[] = date('d/m/Y', $newDay['date']);
+        }
+    }
+
+    $isLeapYear = date('L');
+    $totalDays = 365;
+    $isModified = false;
+    if ($isLeapYear == 1) {
+        $totalDays = 366;
+    }
+
+    $currentYearDay = date('z', time()) + 1;
+    $currentDateName = date('D M', time());
+    $currDate = date('d/m/Y', time());
+
+    for ($i = $currentYearDay; $i <= $totalDays; $i++) {
+        if ($dayName > 0) {
+            $d = mktime(0, 0, 0, 1, $i, date("Y"));
+            $dName = date('D', $d);
+            $isThisTheDate = date("d/m/Y", $d);
+            if (time() > strtotime('13:00:00')) {
+                $dayName = $dayName + 1;
+                $dateTime = DateTime::createFromFormat('d/m/Y', $isThisTheDate);
+                $dateTime->modify("+{$dayName} days");
+                $dName = date('D', $dateTime->getTimestamp());
+                $isModified = true;
+            }
+
+           if ($dName != 'Sat' && $dName != 'Sun') {
+                if (!in_array($isThisTheDate, $nonWorkingDay)) {
+                    if (!$isModified) {
+                        $dateTime = DateTime::createFromFormat('d/m/Y', $isThisTheDate);
+                        $dateTime->modify("+{$dayName} days");
+                    }
+
+                    return $dateTime->format('d/m/Y');
+                }
+            }
+        }
+    }
+}
+
+echo searchForSaturday('Sat');
+echo searchForNextWorkingDay('1');
+
 /**
  * Get a protected/private method reflection for testing.
  *
