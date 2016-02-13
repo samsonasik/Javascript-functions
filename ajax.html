@@ -10,16 +10,19 @@
 <script type="text/javascript">
 
 ajaxify.ajax({
-    url: 'test.php',
-    method: "POST",
-    data: {da: "da=da&asd=dsa", user: "stanimir"},
-    dataType: "json",
+    url: 'test.xml',
+    method: "GET",
+    // data: {da: "da=da&asd=dsa", user: "stanimir"},
+    dataType: "xml",
+    crossOrigin: true,
     headers: {"my-Awes0mE-H3ad3R": "header4e"}
 }, function (result) {
-    ajaxify.each(ajaxify.parseJSON(result), function(i, data) {
-        console.log(i);
-        console.log(data);
-    });
+    console.log(result)
+
+    // ajaxify.each(ajaxify.parseJSON(result), function(i, data) {
+    //     console.log(i);
+    //     console.log(data);
+    // });
 });
 
 

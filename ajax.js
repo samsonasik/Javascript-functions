@@ -48,6 +48,7 @@
         rquery: ( /\?/ ),
         s: {},  // holds the extended settings object
         request: null,
+        xdr: false,
         settings: {
             accepts: {
                 "*": "*/"+"*", // applying */* directly will be counted as comment
@@ -69,7 +70,6 @@
             processData: true,
             headers: {},
             crossOrigin: false,
-            xdr: false,
         },
 
         /**
@@ -109,36 +109,6 @@
             } catch (e) {
                 return [e, data];
             }
-        },
-
-        /**
-         * Taken from jQuery.js
-         *
-         * @param {Object} response The XMLHttpRequest response
-         */
-        parseXML: function(response) {
-            var xml, tmp;
-            if ( !response || typeof response !== "string" ) {
-                return null;
-            }
-            try {
-                if ( window.DOMParser ) { // Standard
-                    tmp = new window.DOMParser();
-                    xml = tmp.parseFromString( response, "text/xml" );
-                } else { // IE
-                    xml = new window.ActiveXObject( "Microsoft.XMLDOM" );
-                    xml.async = "false";
-                    xml.loadXML( response );
-                }
-            } catch ( e ) {
-                xml = undefined;
-            }
-
-            if ( !xml || !xml.documentElement || xml.getElementsByTagName( "parsererror" ).length ) {
-                jQuery.error( "Invalid XML: " + response );
-            }
-
-            return xml;
         },
 
         setHeaders: function () {
@@ -235,13 +205,10 @@
              */
             this.request = new (window.XMLHttpRequest || ActiveXObject)('MSXML2.XMLHTTP.3.0');
             this.s.method = this.s.method.toUpperCase() || 'GET';
-            if(this.crossOrigin) {
+            if(this.s.crossOrigin) {
                 if(!('withCredentials' in this.request) && window.XDomainRequest) {
                     this.request = new XDomainRequest();
                     this.xdr = true;
-                    if(this.s.method !== 'GET' || this.s.method !== 'POST') {
-                        this.s.method = 'GET';
-                    }
                 }
             }
 
@@ -249,7 +216,7 @@
              * Normalize URL
              */
             if (this.s.method === 'GET') {
-                this.s.url = (this.s.url += (this.rquery.test(this.s.url) ? "&" : "?") + this.s.data);
+                this.s.url = (this.s.url += (this.rquery.test(this.s.url) ? "&" : "?") + (this.s.data !== null && this.s.method !== 'GET' ? this.s.data : ''));
             }
 
             /**
@@ -287,7 +254,13 @@
                             window.clearTimeout(this.timeoutTimer);
                         }
 
-                        done(this.responseText, this.getAllResponseHeaders(), this);
+                        var response;
+                        response = this.responseText;
+                        if (ajaxify.s.dataType === 'xml') {
+                            response = this.responseXML;
+                        }
+
+                        done(response, this.getAllResponseHeaders(), this);
                     } else {
                         ajaxify.showAjaxErrors(err);
                     }
@@ -313,11 +286,11 @@
                 this.request.onerror = function(){};
                 // https://developer.mozilla.org/en-US/docs/Web/API/XDomainRequest
                 setTimeout(function() {
-                    this.request.send(this.s.data);
+                    this.request.send(this.s.method !== "GET" ? this.s.data : null);
                 }, 0);
             }
             else {
-                this.request.send(this.s.data);
+                this.request.send(this.s.method !== "GET" ? this.s.data : null);
             }
 
             return this;
