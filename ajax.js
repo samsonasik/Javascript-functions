@@ -37,16 +37,16 @@
      */
     'use strict';
 
-    var exports = {};
-    // timeout handle
-    var timeoutTimer;
-    var rquery = ( /\?/ );
+    // timeout handler
     var ajaxify = {
 
         /**
          * Default settings
          */
-        s: {},
+        timeoutTimer: null,
+        r20: /%20/g,
+        rquery: ( /\?/ ),
+        s: {},  // holds the extended settings object
         request: null,
         settings: {
             accepts: {
@@ -66,11 +66,16 @@
             withCredentials: false,
             dataType: "json",
             data: null,
+            processData: true,
             headers: {},
             crossOrigin: false,
             xdr: false,
         },
 
+        /**
+         * @param {Object} obj the passed object
+         * @param {Object} src the original object
+         */
         extend: function (obj, src) {
             for (var key in src) {
                 if (obj.hasOwnProperty(key)) {
@@ -128,9 +133,11 @@
             } catch ( e ) {
                 xml = undefined;
             }
+
             if ( !xml || !xml.documentElement || xml.getElementsByTagName( "parsererror" ).length ) {
                 jQuery.error( "Invalid XML: " + response );
             }
+
             return xml;
         },
 
@@ -147,8 +154,14 @@
             for (var i in this.s.headers) {
                 this.request.setRequestHeader(i, this.s.headers[i]);
             }
+
+            return this;
         },
 
+
+        /**
+         * @param {Callback} err
+         */
         showAjaxErrors: function (err) {
             if (typeof err === 'function') {
                 err(this.request.error, this.request.statusText, this.request.status, this.request.responseText, this.request.getAllResponseHeaders());
@@ -158,6 +171,8 @@
                 console.error("Status: " + this.request.status);
                 console.error("Response text: " + this.request.responseText);
             }
+
+            return this;
         },
 
        /**
@@ -172,20 +187,31 @@
         },
 
         /**
-         * @param {Object} data
+         * @param {Object|Array} data
          */
-        convertObjectToText: function(data) {
-            var pairs = [];
+        convertDataToText: function(data) {
+            var pairs = [],
+                    add = function(key, value) {
+                        // If value is a function, invoke it and return its value
+                        value = typeof value === 'function' ? value() : (value == null ? "" : value);
+                        pairs[pairs.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value);
+                    };
+            if (Array.isArray(data)) {
+                ajaxify.each(data, function(index, value) {
+                    add(index, value);
+                });
+            } else {
 
-            for (var prop in data) {
-                if (data.hasOwnProperty(prop)) {
-                    var k = encodeURIComponent(prop),
-                        v = encodeURIComponent(data[prop]);
-                    pairs.push( k + "=" + v);
+                for (var prop in data) {
+                    if (data.hasOwnProperty(prop)) {
+                        var k = encodeURIComponent(prop),
+                            v = encodeURIComponent(data[prop]);
+                        pairs.push( k + "=" + v);
+                    }
                 }
             }
 
-            return pairs.join("&");
+            return pairs.join("&").replace(this.r20, "+");
         },
 
         /**
@@ -200,8 +226,8 @@
 
             this.s = this.getSettings(settings);
 
-            if (typeof this.s.data === 'object') {
-                this.s.data = this.convertObjectToText(this.s.data);
+            if (typeof this.s.data !== 'string' && this.s.processData && this.s.data) {
+                this.s.data = this.convertDataToText(this.s.data);
             }
 
             /**
@@ -223,7 +249,7 @@
              * Normalize URL
              */
             if (this.s.method === 'GET') {
-                this.s.url = (this.s.url += (rquery.test(this.s.url) ? "&" : "?") + this.s.data);
+                this.s.url = (this.s.url += (this.rquery.test(this.s.url) ? "&" : "?") + this.s.data);
             }
 
             /**
@@ -248,7 +274,7 @@
              */
             if (this.detectXMLHttpVersion() === 2 && this.s.async === true && this.s.timeout > 0) {
                 this.request.timeout = this.s.timeout;
-                timeoutTimer = window.setTimeout(function() {
+                this.timeoutTimer = window.setTimeout(function() {
                     this.request.abort("timeout");
                 }, this.s.timeout);
             }
@@ -256,12 +282,12 @@
             this.request.onload = function () {
                 if (this.readyState === 4) {
                     if (this.status >= 200 && this.status < 300) {
-                        done(this.responseText, this.getAllResponseHeaders(), this);
-
                         // Clear timeout if it exists
-                        if (timeoutTimer) {
-                            window.clearTimeout(timeoutTimer);
+                        if (this.timeoutTimer) {
+                            window.clearTimeout(this.timeoutTimer);
                         }
+
+                        done(this.responseText, this.getAllResponseHeaders(), this);
                     } else {
                         ajaxify.showAjaxErrors(err);
                     }
@@ -323,6 +349,8 @@
                 this.request.abort();
                 this.request = null;
             }
+
+            return this;
         },
     };
 

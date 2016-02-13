@@ -14,7 +14,6 @@ ajaxify.ajax({
     method: "POST",
     data: {da: "da=da&asd=dsa", user: "stanimir"},
     dataType: "json",
-    timeout: 30000000,
     headers: {"my-Awes0mE-H3ad3R": "header4e"}
 }, function (result) {
     ajaxify.each(ajaxify.parseJSON(result), function(i, data) {
