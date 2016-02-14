@@ -76,7 +76,7 @@
          * @param {Object} obj the passed object
          * @param {Object} src the original object
          */
-        extend: function (obj, src) {
+        merge: function (obj, src) {
             for (var key in src) {
                 if (obj.hasOwnProperty(key)) {
                     src[key] = obj[key];
@@ -115,9 +115,8 @@
             if (this.s.contentType !== false) {
                 this.request.setRequestHeader("Content-type", this.s.contentType);
             }
-            if (this.s.accepts[this.s.dataType] !== false) {
-                this.request.setRequestHeader("Accept", this.s.accepts[this.s.dataType]);
-            }
+
+            this.request.setRequestHeader("Accept", this.s.accepts[this.s.dataType] ? this.s.accepts[this.s.dataType] : this.s.accepts["*"]);
             this.request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
             // Check for headers option
@@ -145,12 +144,12 @@
             return this;
         },
 
-       /**
+        /**
          * @param {Object} settings
          */
         getSettings: function(settings) {
             if (typeof settings === 'object') {
-                return this.extend(settings, this.settings);
+                return this.merge(settings, this.settings);
             } else {
                 return this.settings;
             }
@@ -216,7 +215,7 @@
              * Normalize URL
              */
             if (this.s.method === 'GET') {
-                this.s.url = (this.s.url += (this.rquery.test(this.s.url) ? "&" : "?") + (this.s.data !== null && this.s.method !== 'GET' ? this.s.data : ''));
+                this.s.url = (this.s.url += (this.rquery.test(this.s.url) ? "&" : "?") + (this.s.data !== null ? this.s.data : ''));
             }
 
             /**
@@ -242,8 +241,8 @@
             if (this.detectXMLHttpVersion() === 2 && this.s.async === true && this.s.timeout > 0) {
                 this.request.timeout = this.s.timeout;
                 this.timeoutTimer = window.setTimeout(function() {
-                    this.request.abort("timeout");
-                }, this.s.timeout);
+                    ajaxify.request.abort("timeout");
+                }, ajaxify.s.timeout);
             }
 
             this.request.onload = function () {
@@ -265,6 +264,21 @@
                         ajaxify.showAjaxErrors(err);
                     }
                 }
+            };
+
+            this.request.ontimeout = function (event) {
+                var content = ddocument.getElementsByTagName("body")[0],
+                    p = document.createElement('p'),
+                    msg = document.createTextNode('Just a little bit longer!');
+                    p.appendChild(msg);
+                    content.appendChild(p);
+
+                    // Restarts the request.
+                    event.target.open(ajaxify.s.method, ajaxify.s.url);
+
+                    // Optionally, set a longer timeout to override the original.
+                    event.target.timeout = ajaxify.s.timeout + 5000;
+                    event.target.send(ajaxify.s.data);
             };
 
             this.request.onerror = function () {
