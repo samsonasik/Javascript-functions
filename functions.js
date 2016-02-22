@@ -288,6 +288,11 @@ function fadeIn(el) {
   tick();
 }
 
+//Pretty-print JSON
+
+JSON.stringify({a: "lorem", b: "ipsum"}, null, 4);
+JSON.stringify({a: "lorem", b: "ipsum"}, null, '\t');
+
 var quicksort = function(arr) {
     if(arr.length <= 1) {
         return arr;

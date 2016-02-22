@@ -39,7 +39,7 @@ class WorkingDays extends ArrayIterator implements Iterator
 
     public function __construct($year = null, array $ignoreWeekDays = null, array $ignoreSpecificDates = null)
     {
-        if (!is_string($year)) {
+        if (!is_string($year) || !is_int($year)) {
             $this->year = date("o", time());
         } else {
             $this->year = $year;
@@ -71,9 +71,9 @@ class WorkingDays extends ArrayIterator implements Iterator
             $counter = mktime(0, 0, 0, $month, 1, $this->year);
             while (date("n", $counter) == $month) {
                 if (!in_array(date("w", $counter), $this->ignoreWeekDays)) {
-                    $data[$i]['currentDate'] = date("d", time());
+                    $data[$i]['currentDate'] = $this->getCurrentDateFromFormat('d');
                     $data[$i]['date'] = date("d", $counter);
-                    $data[$i]['dayName'] = date("l", $counter);
+                    $data[$i]['dayName'] = date("D", $counter);
                     $data[$i]['month'] = date("M", $counter);
                     $data[$i]['year'] = date("o", $counter);
                     $data[$i]['search_date'] = date("d-m-o", $counter);
@@ -97,7 +97,7 @@ class WorkingDays extends ArrayIterator implements Iterator
     {
         foreach ($dates as $key => $date) {
             foreach ($this->ignoreSpecificDates as $key2 => $ignoredDate) {
-                $ignoredDate = str_replace(array('/', '\\', '_'), '-', $ignoredDate);
+                $ignoredDate = str_replace(array('/', '\\', '_', ' '), '-', $ignoredDate);
                 $search_date = date('d-m-o', strtotime($ignoredDate, true));
                 if (in_array($search_date, $date)) {
                     unset($dates[$key]);
@@ -106,6 +106,16 @@ class WorkingDays extends ArrayIterator implements Iterator
         }
 
         return $dates;
+    }
+
+    /**
+     * @param  string $format
+     *
+     * @return string
+     */
+    public function getCurrentDateFromFormat($format = 'd M, Y')
+    {
+        return date($format, time());
     }
 
     /**
@@ -170,7 +180,6 @@ class WorkingDays extends ArrayIterator implements Iterator
 
         return key($this->workingDays) !== null;
     }
-
 }
 
 ?>
