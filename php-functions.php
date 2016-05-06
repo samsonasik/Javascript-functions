@@ -10,8 +10,23 @@ $year = 31536000;
 
 $protocols = array( 'http', 'https', 'ftp', 'ftps', 'mailto', 'news', 'irc', 'gopher', 'nntp', 'feed', 'telnet', 'mms', 'rtsp', 'svn', 'tel', 'fax', 'xmpp' );
 
+$channel_id = 1;
+$fixed_tables = implode(" ", $fixed_tables);
+$file = "all_tables_for_channel_{$channel_id}.sql";
+echo exec("C:\\xampp\mysql\bin\mysqldump.exe --opt -uusername -ppassword quickview {$fixed_tables} > {$file}");
+echo exec("C:\\xampp\mysql\bin\mysql.exe -uusername -ppassword asddsa < {$file}");
+unlink($file);
 
+foreach ($other as $key => $table) {
+    if($table == "products") {
+        echo exec("C:\\xampp\mysql\bin\mysqldump.exe --opt -uusername -ppassword quickview {$table} --where=\"channels LIKE '%[{$channel_id}]%'\" > {$table}.sql");
+    } else if($table == "product_categories") {
+        echo exec("C:\\xampp\mysql\bin\mysqldump.exe --opt -uusername -ppassword quickview {$table} --where=\"channels LIKE '%[{$channel_id}]%'  OR name='ROOT' \" > {$table}.sql");
+    }
 
+    echo exec("C:\\xampp\mysql\bin\mysql.exe -uusername -ppassword asddsa < {$table}.sql");
+    unlink("{$table}.sql");
+}
 
 
 function searchForSaturday($dayName = null)

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>ES6</title>
+</head>
+<body>
+
+<script>
+
+{
+    "use strict";
+
+    class Polygon {
+        constructor(height = 5, width = 10) {
+            this.height = height;
+            this.width = width;
+            this.name = 'Polygon';
+        }
+
+        getWidth() {
+            return this.width;
+        }
+
+        getHeight() {
+            return this.height;
+        }
+
+        static distance(a, b) {
+            const dx = a.height - b.height;
+            const dy = a.width - b.width;
+
+            return Math.sqrt(dx*dx + dy*dy);
+        }
+
+        calcArea() {
+            return this.getHeight() * this.getWidth();
+        }
+
+        get sayName() {
+            return 'Hi, I am a ', this.name + '.';
+        }
+    }
+
+    /**
+     * User must call super first: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/super
+     */
+    class Square extends Polygon {
+        constructor(height, width) {
+            super(height, width);
+
+             this.name = 'Square';
+        }
+        getDoubleWidth() {
+            let width = super.getWidth();
+            return this.width * width;
+        }
+
+        getHeight() {
+            return this.height;
+        }
+
+        area() {
+            return super.calcArea();
+        }
+
+        set setName(name) {
+            this.name = name;
+        }
+    }
+
+    const polygon = new Polygon(2, 2);
+    const polygon2 = new Polygon(10, 10);
+    const square = new Square(20, 6);
+
+    console.log(polygon.calcArea());
+    console.log(polygon2.calcArea());
+    console.log(Polygon.distance(polygon, polygon2));
+    console.log(Polygon.distance(square, polygon2));
+    console.log(Polygon.distance(square, polygon));
+    console.log(square.area());
+    console.log(square.getWidth());
+    console.log(square.getDoubleWidth());
+    square.setName = 'test4ee';
+    console.log(square.sayName);
+
+
+}
+</script>
+</body>
+</html>
