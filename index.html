@@ -85,7 +85,34 @@
     square.setName = 'test4ee';
     console.log(square.sayName);
 
+    const gen = function* idMaker() {
+        let index = 0;
+        while (index <= 3) {
+            yield [index, index++];
+        }
+    }
 
+    // let newVar = gen(); || just call gen() in the loop
+    for (let [key,value] of gen()) {
+        console.log(`${key}: ${value}`);
+    }
+
+    function* objectEntries(obj) {
+        let propKeys = Reflect.ownKeys(obj);
+
+        for (let propKey of propKeys) {
+            // `yield` returns a value and then pauses
+            // the generator. Later, execution continues
+            // where it was previously paused.
+            yield [propKey, obj[propKey]];
+        }
+    }
+
+    const jane = { first: 'Jane', last: 'Doe' };
+    let result = objectEntries(jane);
+    for (let [key,value] of result) {
+        console.log(`${key}: ${value}`);
+    }
 }
 </script>
 </body>
